@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      .remark-slide code
+      {
+        text-align: left;
+      }
+      
+      .remark-slide
+      {
+        font-size: 200%;
+      }
+      
+      .remark-slide .remark-slide-content
+      {
+        padding: 1em 2em;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Predicate Tutorial
+
+An in-depth tutorial on lightweight custom predicates.
+
+---
+
+## What is a (language) predicate?
+
+A predicate asserts something about the subject.
+
+"The cat *is furry*."
+
+---
+
+## What is a (code) predicate?
+
+A predicate *evaluates* an assertion about the subject.
+
+```cpp
+bool is_furry(string const& subject)
+{
+    return (subject == "cat");
+}
+```
+
+The predicate here evaluates the subject, and determines if it is furry.
+
+Unary predicates must be pure.
+
+???
+
+Pure - always returns the same result.
+
+---
+
+## Binary Predicate
+
+A subject can consist of multiple nouns.
+
+```cpp
+bool is_furrier(Animal x, Animal y)
+{
+    return (x.fur > y.fur);
+}
+```
+
+Binary predicates are most often used to compare two items.
+
+???
+
+Partition, remove, copy_if.
+
+---
+
+## Ordering
+
+Binary predicates are commonly used to define an ordering of a set.
+
+An *ordering* is a function that takes two objects,
+and returns `true` if the first object *precedes* the second,
+and returns `false` otherwise.
+
+---
+
+## Axioms of Partial Ordering
+
+Let `P(x,y)` be the abstract predicate.
+
+- **Irreflexive**: Never `P(x,x)`.
+- **Antisymmetric**: Never `P(x,y) && P(y,x)`.
+- **Transitive**: `P(x,y) && P(y,z)` implies `P(x,z)`.
+
+---
+
+## Axioms of Strict Weak Ordering
+
+Including the axioms of partial orderings:
+
+- **Equivalence**: If neither `P(x,y)` nor `P(y,x)`, then `x` and `y` are equivalent.
+  - Equivalence does not imply equality.
+  - Equivalence is transitive.
+
+???
+
+Examples later.
+
+---
+
+## Axioms of Total Ordering
+
+Including the axioms of partial and strict weak orderings:
+
+- Equivalence implies equality.
+
+---
+
+## end for now
+
+    </textarea>
+    <script src="http://gnab.github.io/remark/downloads/remark-0.6.0.min.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
