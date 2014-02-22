@@ -18,6 +18,16 @@
       {
         padding: 1em 2em;
       }
+      
+      .remark-slide .no-break
+      {
+        white-space: pre;
+      }
+      
+      .red
+      {
+		  color: red;
+	  }
     </style>
   </head>
   <body>
@@ -25,9 +35,13 @@
 
 class: center, middle
 
-# Predicate Tutorial
+# Sepples Predicate Tutorial
 
-An in-depth tutorial on lightweight custom predicates.
+*The last three words of this sentence are a predicate.*
+
+???
+
+Might be a bit too in-depth.
 
 ---
 
@@ -44,19 +58,153 @@ A predicate asserts something about the subject.
 A predicate *evaluates* an assertion about the subject.
 
 ```cpp
-bool is_furry(string const& subject)
+// pseudocode
+bool is_furry(subject)
 {
-    return (subject == "cat");
+    return (subject == cat);
 }
 ```
 
 The predicate here evaluates the subject, and determines if it is furry.
 
-Unary predicates must be pure.
+---
+
+## Purity
+
+Unary and binary predicates must:
+
+- Never modify the objects.
+- Give the same result every time.
+
+---
+
+## Using Unary Predicates
+
+A good use of unary predicates is the `std::partition` algorithm.
+
+```cpp
+template <typename BI, typename UP>
+BI partition( BI first, BI last, UP pred );
+```
 
 ???
 
-Pure - always returns the same result.
+BI is a BidirectionalIterator
+UP is a UnaryPredicate
+
+---
+
+## Let's Partition!
+
+First, we need a container:
+
+```cpp
+vector<int> my_vec =
+	{ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+```
+
+Let's partition the numbers with the predicate that
+they are divisibe by a certain integer.
+
+---
+
+## Naive Predicate
+
+First attempt:
+
+```cpp
+bool is_divisible_by_seven( int i )
+{
+	return ( i%7 == 0 );
+}
+```
+
+---
+
+## Naive Predicate Usage
+
+```cpp
+partition( my_vec.begin(), my_vec.end(),
+	is_divisible_by_seven);
+```
+
+This is a good start, but it only works for the number `7`.
+
+To change the number, we must change the function.
+To have multiple numbers, we need multiple functions.
+
+---
+
+## Templatized Predicate
+
+Second attempt:
+
+```cpp
+template < int N >
+bool is_divisible_by( int i )
+{
+	return ( i%N == 0 );
+}
+```
+
+---
+
+## Templatized Predicate Usage
+
+```cpp
+partition( my_vec.begin(), my_vec.end(),
+	is_divisible_by< 7 > );
+```
+
+Much better, but what if we can't know `N` at compile time?
+
+---
+
+## Function Object Predicate
+
+Final attempt:
+
+```cpp
+struct is_divisible_by
+{
+	int N;
+	
+	is_divisible_by(int n) // constructor
+		: N( n ) {}
+	
+	bool operator()(int i) const
+	{
+		return ( i%N == 0 );
+	}
+}
+```
+
+---
+
+## Function Object Predicate Usage
+
+```cpp
+partition( my_vec.begin(), my_vec.end(),
+	is_divisible_by( 7 ) );
+```
+
+Excellent!
+
+The function object can take any number now, even during run-time.
+
+```cpp
+cin >> x;
+partition( my_vec.begin(), my_vec.end(),
+	is_divisible_by( x ) );
+```
+
+---
+
+class: center, middle
+
+## Checkpoint
+
+*Remember the cats.*
 
 ---
 
@@ -75,53 +223,143 @@ Binary predicates are most often used to compare two items.
 
 ???
 
-Partition, remove, copy_if.
+Sort, remove, copy_if.
 
 ---
 
-## Ordering
+class: center, middle
 
-Binary predicates are commonly used to define an ordering of a set.
+.red[
 
-An *ordering* is a function that takes two objects,
-and returns `true` if the first object *precedes* the second,
-and returns `false` otherwise.
+## `WARNING!`
 
----
+`SET THEORY DETECTED`
 
-## Axioms of Partial Ordering
+`ABANDON SHIP`
 
-Let `P(x,y)` be the abstract predicate.
-
-- **Irreflexive**: Never `P(x,x)`.
-- **Antisymmetric**: Never `P(x,y) && P(y,x)`.
-- **Transitive**: `P(x,y) && P(y,z)` implies `P(x,z)`.
-
----
-
-## Axioms of Strict Weak Ordering
-
-Including the axioms of partial orderings:
-
-- **Equivalence**: If neither `P(x,y)` nor `P(y,x)`, then `x` and `y` are equivalent.
-  - Equivalence does not imply equality.
-  - Equivalence is transitive.
+]
 
 ???
 
-Examples later.
+I promise it's necessary.
 
 ---
 
-## Axioms of Total Ordering
+## Properties of Relations
 
-Including the axioms of partial and strict weak orderings:
+Let `~` be a binary relation.
+
+- **Reflexive**: `(x ~ x)`.
+- **Symmetric**: `(x ~ y && y ~ x)`.
+- **Transitive**: `(x ~ y && y ~ z)` implies `x ~ z`.
+
+We also define:
+
+- **Equivalence**: `!(x ~ y || y ~ x)` implies `x <=> y`.
+  - Equivalence is transitive.
+  - Does not always imply equality.
+
+---
+
+## Ordering Relations
+
+Binary predicates are commonly used to define an ordering of a set.
+
+An ordering is a relation that determines if an object precedes another
+object in the same set.
+
+All ordering relations are *asymmetric* and *transitive*.
+
+---
+
+## Partial Order
+
+- Reflexive
+- Asymmetric
+- Transitive
+
+---
+
+## Strict Weak Order
+
+Most C++ algorithms require a strict weak ordering predicate.
+
+- Irreflexive
+- Asymmetric
+- Transitive
+- Equivalence
+
+---
+
+## Total Order
+
+Total ordering is similar to strict weak ordering.
 
 - Equivalence implies equality.
 
 ---
 
-## end for now
+## Pop Quiz
+
+Classify these relations for `x` and `y` in **R**.
+
+- .no-break[`x == y`]
+- .no-break[`x != y`]
+- .no-break[`x <  y`]
+- .no-break[`x >  y`]
+- .no-break[`x <= y`]
+- .no-break[`x >= y`]
+
+---
+
+## You Pass!
+
+Answers:
+
+- .no-break[`x == y`] : No ordering; symmetric; no equivalence.
+- .no-break[`x != y`] : No ordering; symmetric; intransitive.
+- .no-break[`x <  y`] : Total ordering.
+- .no-break[`x >  y`] : Total ordering.
+- .no-break[`x <= y`] : Partial ordering; reflexive.
+- .no-break[`x >= y`] : Partial ordering; reflexive.
+
+---
+
+## Why not `<=`?
+
+Since `<=` and `>=` don't define a strict weak order,
+they can't be used in many algorithms.
+
+In a strict weak ordering, `!(x ~ y || y ~ x)` means that `x` and `y` are equivalent.
+However, if `!(x <= y || y <= x)`, they are certainly not equivalent.
+
+They are *incomparable*.
+
+Any relation `~` such that `(x ~ y)` could be undefined gives
+no more than a partial ordering,
+and cannot be use e.g. in sorting algorithms.
+
+---
+
+## Mumbo Jumbo - What's it all mean?
+
+Most standard algorithms require strice weak ordering predicates.
+
+They default to `std::less<T>`, a wrapper around `x < y`.
+
+---
+
+class: center, middle
+
+## Checkpoint
+
+*A thousand words are worth a picture.*
+
+---
+
+# end for now
+
+
 
     </textarea>
     <script src="http://gnab.github.io/remark/downloads/remark-0.6.0.min.js" type="text/javascript">
