@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <style type="text/css">
+      @import url(//fonts.googleapis.com/css?family=Droid+Serif:400,700,400italic);
+      @import url(//fonts.googleapis.com/css?family=Source+Code+Pro:400,700,400italic);
+
+      body { font-family: 'Droid Serif'; }
+      .remark-slide-content h1, h2, h3 {
+        font-weight: normal;
+    }
+      .remark-slide-content h1 { font-size: 32pt; }
+      .remark-slide-content h2 { font-size: 24pt; }
+      .remark-slide-content h3 { font-size: 18pt; }
+      table {
+            border-collapse: collapse;
+        }
+
+      table, th, td {
+          border: 0.1em solid black;
+      }
+      td { padding: 0.25em; }
+      .remark-code, .remark-inline-code {
+          font-family: 'Source Code Pro';
+          border-radius: 0.5em;
+      }
+      .remark-code-line-highlighted     { background-color: #121310; }
+
+      .interleaved-code pre {
+          margin-top: -0.1em;
+          margin-bottom: -0.1em;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# How to Win at C++
+
+---
+
+# Agenda
+
+1. Brief History Lesson
+2. Paradigms
+3. Modern C++
+4. Value Semantics
+5. Exercises
+
+---
+
+# Brief History Lesson
+
+Year | Language       | Note
+:--  |:--             |:--
+1956 | FORTRAN        | First optimizing compiler.
+1967 | Simula         | First object-oriented language.
+1968 | B              | Systems programming, influential syntax.
+1978 | C              | K&R C.
+1979 | C with Classes | Origin of C++, extension of C.
+1983 | C++            | C with Classes becomes a new language.
+1995 | Java           | ~~First terrible language.~~ Applets!
+1998 | C++98          | C++ is internationally standardised.
+2003 | C++03          | Augmentations and bugfixes for C++98.
+2011 | C++11          | Nuclear explosion of new features.
+2011 | C11            | A few new features, still no templates.
+2014 | C++14          | Augmentations and bugfixes for C++11.
+
+---
+
+# Comparison
+
+A simple `Document` class.
+
+Goals:
+
+- Create different types of documents with a common interface.
+- Store documents of different types in a container.
+- Display documents easily.
+
+---
+
+# Document Example - `C` <span style='font-size: 50%;'>(1/2)</span>
+
+```c
+typedef struct Document Document;
+
+typedef struct {
+    void (*print)(Document*);
+} Document_vtable;
+
+struct Document {
+*   Document_vtable* vtab;
+};
+```
+
+---
+
+# Document Example - `C` <span style='font-size: 50%;'>(2/2)</span>
+
+```c
+typedef struct {
+*   Document super;
+    int data;
+} IntegerDocument;
+
+void print_integer_document(Document* doc) {
+*   IntegerDocument* self = (IntegerDocument*)doc;
+    printf("%d\n", self->data);
+    fflush(stdout);
+};
+
+Document_vtable IntegerDocument_vtable = {
+*   .print = print_integer_document
+};
+
+Document* make_integer_document(int i) {
+    IntegerDocument* doc = malloc(sizeof(IntegerDocument));
+*   doc->super.vtab = &IntegerDocument_vtable;
+    doc->data = i;
+*   return &doc->super;
+}
+```
+
+---
+
+# Document Example - `C` <span style='font-size: 50%;'>(Usage)</span>
+
+```c
+int main()
+{
+    Document* docs[10] = {0};
+    docs[0] = make_integer_document(7);
+*   docs[0]->vtab->print(doc);
+
+    for (int i=0; i<10; ++i) {
+        free(docs[i]);
+    }
+}
+```
+
+???
+
+Could probably use a few macros to make this prettier.
+
+---
+
+# Document Example - `Simula`
+
+```simula
+Class Document;
+*   Virtual: Procedure print is Procedure print;
+Begin
+End;
+
+Document Class IntegerDocument (data);
+    Integer data;
+Begin
+*   Procedure print;
+    Begin
+        OutInt(data);
+        OutImage;
+    End;
+End;
+```
+
+*Note: I couldn't find a working Simula compiler, so this is probably incorrect.*
+
+---
+
+# Document Example - `Simula` <span style='font-size: 50%;'>(Usage)</span>
+
+```simula
+begin
+    Ref (Document) Array docs (1:10);
+    docs(1) :- New IntegerDocument(7);
+    docs(1).print;
+end;
+```
+
+---
+
+# Document Example - `C++`
+
+```cpp
+class Document {
+    public:
+*       virtual void print() = 0;
+};
+
+class IntegerDocument : public Document {
+    int data;
+    public:
+        IntegerDocument(int i) : data(i) {}
+
+*       virtual void print() override {
+            std::cout << data << std::endl;
+        }
+};
+```
+
+???
+
+Very similar to Simula code.
+
+---
+
+# Document Example - `C++` <span style='font-size: 50%;'>(Usage)</span>
+
+```cpp
+int main()
+{
+    auto docs = array<shared_ptr<Document>,10>{};
+    docs[0] = make_shared<IntegerDocument>(7);
+    docs[0]->print();
+}
+```
+
+```cpp
+// int main()
+// {
+//     Document* docs[10] = {0};
+//     docs[0] = new IntegerDocument(7);
+//     docs[0]->print();
+//
+//     for (int i=0; i<10; ++i) {
+//         delete docs[i];
+//     }
+// }
+```
+
+---
+
+# Interlaced `Simula` and `C++`
+
+.interleaved-code[
+```cpp
+int main() {
+```
+```simula
+*begin
+```
+```cpp
+    auto docs = array<shared_ptr<Document>,10>{};
+```
+```simula
+*   Ref (Document) Array docs (1:10);
+```
+```cpp
+    docs[0] = make_shared<IntegerDocument>(7);
+```
+```simula
+*   docs(1) :- New IntegerDocument(7);
+```
+```cpp
+    docs[0]->print();
+```
+```simula
+*   docs(1).print;
+```
+```cpp
+}
+```
+```simula
+*end;
+```
+]
+
+---
+
+# Paradigms
+
+```
+
+
+
+A programming paradigm is
+    a fundamental style of computer programming,
+    a way of building the structure and elements of computer programs.
+```
+---
+
+# Procedural
+
+Verb-Oriented
+
+```cpp
+struct Data { int x; };
+void increment(Data& data) { ++data.x; }
+
+int main()
+{
+    auto data = Data{0};
+    increment(data);
+}
+```
+
+- Verb first, data later.
+- Side effects.
+- Shared state.
+
+---
+
+# Object-Oriented
+
+Most popular; most difficult to get right.
+
+```cpp
+struct Data {
+    int x;
+    void increment() { ++x; }
+};
+
+int main()
+{
+    auto data = Data{0};
+    data.increment();
+}
+```
+
+- Objects first, verbs later.
+- Methods
+- Inheritance
+- Runtime Polymorphism.
+- Strong ownership semantics.
+
+---
+
+# Functional
+
+Antithesis of Procedural
+
+```cpp
+struct Data { int x; };
+Data increment(Data const data) { return Data{data.x+1}; }
+
+int main()
+{
+    auto data = Data{0};
+    data = increment(data);
+}
+```
+
+- Constancy of data is preferred.
+- Functions are first-class objects.
+- No shared state.
+- Recursion; avoid loop structures.
+
+---
+
+# Generic
+
+Templates
+
+```cpp
+struct Data { int  x; };
+struct Char { char x; };
+
+template <typename T>
+void increment(T& data) { ++data.x; }
+
+int main()
+{
+    auto data1 = Data{0};
+    auto data2 = Char{'0'};
+
+    increment(data1);
+    increment(data2);
+}
+```
+
+- Static polymorphism.
+- Checked at compile time in C++.
+- Duck typing (coined by Python).
+- Behaves-like vs. is-a.
+
+---
+
+# Quiz 1
+
+```cpp
+template <typename Container>
+Container sorted(Container data)
+{
+    sort(begin(data),end(data));
+    return data;
+}
+```
+
+What paradigm(s) does this code use?
+
+???
+
+- Generic
+- Functional
+- Procedural
+
+---
+
+# Quiz 1 Answer
+
+```cpp
+template <typename Container> // Generic (duck typing)
+Container sorted(Container data) // Functional (no side effects)
+{
+    sort(begin(data),end(data)); // Procedural (shared state)
+    return data;
+}
+```
+
+---
+
+# Modern C++
+
+- Safe
+- Efficient
+- Expressive
+
+C++11
+
+- New language features
+- New library features
+
+---
+
+# New Language Features
+
+- `auto` and `decltype`
+- Uniform Initialization
+- Range-based `for` loops
+- Lambdas
+- Move Semantics (rvalue references)
+
+---
+
+# Automatic Type Deduction
+
+```cpp
+    auto x = 7;   // int
+    auto y = 8.5; // double
+    auto z = x*y; // (int * double) -> double
+
+    auto iter = find(begin(vec),end(vec),x); // vector<int>::iterator
+
+    auto& x_ref = x;
+    const auto& x_const_ref = x;
+
+    auto x_copy = x_ref;
+```
+
+---
+
+# Uniform Initialization
+
+```cpp
+    int x;      // x == ???
+    int x = 7;  // x == 7
+    int x {};   // x == 0
+    int x {7};  // x == 7
+
+    auto x = int{};     // x == 0
+    auto x = int{7};    // x == 7
+
+    vector<int> vec   {1,2,3,1,2,3};
+    vector<int> vec = {1,2,3,1,2,3};
+
+    auto vec = vector<int>{1,2,3,1,2,3};
+```
+
+---
+
+# Range-based `for` Loops
+
+```cpp
+    auto vec = vector<int>{ /* ... */ };
+
+    for (int& x : vec) {
+        x += 7;
+    }
+
+    for (auto& x : vec) {
+        x += 7;
+    }
+```
+
+Equivalent to:
+
+```cpp
+    {
+        auto&& r = vec;
+        for (auto i = begin(r), e = end(r); i != e; ++i) {
+            int& x = *i;
+            x += 7;
+        }
+    }
+```
+
+---
+
+# Lambda
+
+```cpp
+    auto succ = [](int i){ return i+1; };
+
+    int x = 0;
+    auto inc_x = [&]{ ++x; };
+
+    auto is_x = [=](int i){ return (i==x); };
+
+    auto iter = find( begin(vec),end(vec), is_x );
+```
+
+Similar to:
+
+```cpp
+    struct lambda_is_x {
+        int x;
+        lambda_is_x(int x) : x(x) {}
+        bool operator()(int i) const {
+            return (i==x);
+        }
+    };
+
+    auto is_x = lambda_is_x{x};
+```
+
+---
+
+# Move Semantics <span style='font-size: 50%;'>(1/6)</span>
+
+- Automatically happens whenever possible.
+- Applies recursively to structs/classes.
+- Occurs during construction, assignment, and returning.
+- Move construction will not throw an exception.
+- Rvalue references `&&`.
+
+---
+
+# Move Semantics <span style='font-size: 50%;'>(2/6)</span>
+
+Introducing `move()`:
+
+```cpp
+    vector<int> vec1 = {1,2,3};
+    vector<int> vec2 = vec1; // copy
+
+    // vec1 == x->{1,2,3}
+    // vec2 == y->{1,2,3}
+
+    vector<int> vec3 = move(vec1); // move
+
+    // vec1 == ???
+    // vec2 == y->{1,2,3}
+    // vec3 == x->{1,2,3}
+```
+
+- Once an object is moved-from, it can only be:
+  - Assigned to
+  - Destroyed
+
+---
+
+# Move Semantics <span style='font-size: 50%;'>(3/6)</span>
+
+Moving values from a function:
+
+```cpp
+vector<int> get_vec()
+{
+    vector<int> vec = {1,2,3};
+    return vec; // Moved out!
+}
+
+//...
+{
+    vector<int> vec = get_vec(); // Moved in!
+}
+```
+
+---
+
+# Move Semantics <span style='font-size: 50%;'>(4/6)</span>
+
+Recursively moving structs/classes:
+
+```cpp
+struct TwoVecs
+{
+    vector<int> vec1;
+    vector<int> vec2;
+};
+
+TwoVecs get_two_vecs()
+{
+    TwoVecs vecs = { {1,2,3}, {4,5,6} };
+    return vecs; // Moved out!
+}
+```
+
+---
+
+# Move Semantics <span style='font-size: 50%;'>(5/6)</span>
+
+Detecting rvalues:
+
+```cpp
+struct StrHolder {
+    string str;
+
+    void setStr(const string& nstr) { str = nstr; }
+
+    void setStr(string&& nstr) { str = move(nstr); }
+};
+
+//...
+{
+    string str = "Hello";
+    StrHolder holder;
+
+    holder.setStr(str);       // const& -> copy
+    holder.setStr(move(str)); // && -> move
+    holder.setStr("Meow");    // && -> move
+}
+```
+
+---
+
+# Move Semantics <span style='font-size: 50%;'>(6/6)</span>
+
+How it works:
+
+```cpp
+struct HeapInt
+{
+    int* data;
+
+    HeapInt() : data(new int) {}
+
+    HeapInt(const HeapInt& other) {
+        data = new int;
+        *data = *other.data;
+    }
+
+    HeapInt(HeapInt&& other) {
+        data = other.data;
+        other.data = nullptr;
+    }
+
+    ~HeapInt() { delete data; }
+};
+```
+
+---
+
+# Defaulted and Deleted Functions
+
+```cpp
+struct MoveOnly
+{
+    Data data;
+
+    MoveOnly() = default;
+*   MoveOnly(const&) = delete;
+    MoveOnly(&&) = default;
+*   MoveOnly& operator=(const&) = delete;
+    MoveOnly& operator=(&&) = default;
+    ~Whatever() = default;
+};
+```
+
+**Remember***: All of these are implicitly default!
+
+---
+
+# New Libraries
+
+- `<functional>` - Functional programming helpers.
+- `<memory>` - Smart pointers and such.
+- `<tuple>` - Generic nameless structs.
+- New containers `<array>`, `<unordered_set>`, and `<unordered_map>`.
+- New algorithms in `<algorithm>`.
+
+---
+
+# `<functional>`
+
+Main thing: `std::function<>`.
+
+```cpp
+    function<int(int)> succ = [](int i){ return i+1; };
+
+    int x = 0;
+    function<void()> inc_x = [&]{ ++x; };
+
+    function<bool(const int&)> is_x =
+        [=](const int& i){ return (i==x); };
+
+    auto iter = find( begin(vec),end(vec), is_x );
+
+    succ = [](int i){ return ++i; };
+    is_x = [&](const int& i){ return (i==x); };
+```
+
+---
+
+# `<memory>` <span style='font-size: 50%;'>(1/2)</span>
+
+Smart pointers.
+
+- `unique_ptr<T>`
+  - `make_unique<T>(args...)`
+  - Cannot be copied, only moved.
+  - Can be converted into a `shared_ptr<T>`.
+  - Deletes data when lifetime ends.
+  - Semantic: Only one owner.
+- `shared_ptr<T>`
+  - `make_shared<T>(args...)`
+  - Can be copied, all copies point to the same data.
+  - Destroys data when all *owning* copies' lifetimes end.
+  - Semantic: Many owners.
+- `weak_ptr<T>`
+  - Non-owning copy of `shared_ptr<T>`.
+  - Will not prevent the data from being destroyed.
+  - Can be used to generated owning `shared_ptr<T>`s.
+
+---
+
+# `<memory>` <span style='font-size: 50%;'>(2/2)</span>
+
+```cpp
+    unique_ptr<int> ptr0; // nullptr
+
+    auto ptr1 = make_unique<int>(7);
+    auto ptr2 = move(ptr1);
+
+    auto ptr3 = make_shared<int>(15);
+    auto ptr4 = ptr3;
+    auto ptr5 = ptr4;
+
+    ptr1 = make_unique<int>(42);
+    ptr3 = make_shared<int>(19);
+
+    int x = *ptr1;
+    if (ptr2) {
+        x = *ptr2;
+    }
+```
+
+---
+
+# `<tuple>`
+
+- `std::tuple<Ts...>`
+- `std::make_tuple(args...)`
+- `std::tie(args...)`
+
+```cpp
+    tuple<int,double,bool> tup1 (7, 8.5, false);
+
+    auto tup2 = make_tuple(6.5, true, string{"Hello"});
+    auto tup3 = tup2; // copy
+
+    double a;
+    string b;
+
+    tie(a,ignore,c) = tup2;
+
+    double x = 6.5;
+    string y = "World";
+
+    if (tie(x,y) < tie(a,b)) {
+        //...
+    }
+```
+
+---
+
+# New Containers and Algorithms
+
+Too extensive to show here. Have a sample.
+
+```cpp
+    array<int,10> arr;
+    arr[5] = 7;
+
+    unordered_map<string,int> vals;
+    vals["hello"] = 42;
+
+    int a = 12;
+    int b = 7;
+    int c = 75;
+
+    int mn;
+    int mx;
+
+    tie(mn,mx) = minmax({a,b,c});
+```
+
+    </textarea>
+    <script src="remark-latest.min.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+        //highlightStyle: 'monokai'
+        highlightStyle: 'tomorrow-night-bright'
+      });
+    </script>
+  </body>
+</html>
